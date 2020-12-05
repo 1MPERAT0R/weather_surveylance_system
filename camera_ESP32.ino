@@ -1,6 +1,7 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 
+// defining camera pins
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
@@ -18,11 +19,12 @@
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-char ssid[] = "HUAWEI-B612-4ABA";
-char pass[] = "YNM1DFT272E";
+// Wifi Credentials go here
+char ssid[] = "";
+char pass[] = "";
 
 int status = WL_IDLE_STATUS;
-IPAddress server(192,168,8,187); // this needs to be adjusted every time the PI boots up
+IPAddress server(192,168,1,187); // this needs to be adjusted every time the PI boots up currently
 int port = 25425;
 
 WiFiClient client;

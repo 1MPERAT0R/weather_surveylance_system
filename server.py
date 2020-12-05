@@ -1,3 +1,5 @@
+# Author: Zac Turner
+
 import socket
 import threading
 from datetime import datetime
@@ -7,7 +9,7 @@ import os
 port = 25425
 
 listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # ipv4, tcp
-listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # prevents the socket from staying in use after the server is shut off
 listener.bind(('', port))
 listener.listen(5)
 
@@ -85,6 +87,7 @@ def recordImage(clientSocket, clientAddress, mac, Date, Time):
         f.close()
         return
 
+# Determines the contentType for an HTTP request, text is returned if there is no requested type
 def contentType(fileName):
     fileType = os.path.splitext(fileName)[1]
     if fileType == ".html":
@@ -96,8 +99,8 @@ def contentType(fileName):
     
     raise Exception("undefined fileType")
 
+# Interprets HTTP requests and sends the requested file if possible.
 def httpHandler(socket, address, Date, message):
-    HTML_builder(Date) # Build the HTML page for the client
     CRLF = "\r\n"
     
     splitMessage = message.splitlines()
@@ -110,7 +113,8 @@ def httpHandler(socket, address, Date, message):
     try:
         statusline = "HTTP/1.1 200 OK" + CRLF
         contentTypeLine = "Content-type: " + contentType(fileName) + CRLF
-        if fileName == '':
+        if fileName == '': # if the filename is empty then the data.html page will be sent
+            HTML_builder(Date) # Build the HTML page for the client
             file = open('data.html', 'r')
             entityBody = file.read().encode('utf-8')
         else:
@@ -127,6 +131,7 @@ def httpHandler(socket, address, Date, message):
     socket.send(CRLF.encode('utf-8'))
     socket.send(entityBody)
 
+# Builds an HTML webpage with the most recently obtained data
 def HTML_builder(Date):
     try:
         directory = os.listdir(str(Date))
@@ -151,7 +156,7 @@ def HTML_builder(Date):
                 for x in weatherFolders:
                     with open(str(Date) + "/" + x + "/" + "weatherData.csv") as c:
                         reader = csv.reader(c, delimiter=',')
-                        for row in reader:
+                        for row in reader: # The most recent data will be on the last row
                             data = row
                         c.close()
                     f.write("<p>Device: " + x[8:] + "</p>\n")
@@ -219,9 +224,13 @@ def clientHandler(clientSocket, clientAddress):
     print(str(clientAddress[0]) + " has disconnected from port " + str(clientAddress[1]))
     clientSocket.close()   
 
+
+
+
 print("Server started, ctrl + c to shutdown")
 print("listening")
-    
+
+# Main server loop, runs indefinitely unless interrupted
 while True:
     try:
         (clientSocket, clientAddress) = listener.accept()

@@ -2,11 +2,11 @@
 #include <Wire.h>
 #include "SparkFunBME280.h"
 
-char ssid[] = "HUAWEI-B612-4ABA";
-char pass[] = "YNM1DFT272E";
+char ssid[] = "";
+char pass[] = "";
 
 int status = WL_IDLE_STATUS;
-IPAddress server(192,168,8,187);
+IPAddress server(192,168,1,187); // Needs to be adjusted frequently
 int port = 25425;
 
 WiFiClient client;
