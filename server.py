@@ -5,13 +5,18 @@ import threading
 from datetime import datetime
 import csv
 import os
+from subprocess import check_output
 
 port = 25425
+IPDistributorPort = 25426
 
 listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # ipv4, tcp
 listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # prevents the socket from staying in use after the server is shut off
 listener.bind(('', port))
 listener.listen(5)
+
+IPDistributor = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #listens for requests to obtain this devices IP Address
+IPDistributor.bind(('', IPDistributorPort))
 
 # Saves any received weather data to a file
 def recordWeather(clientSocket, clientAddress, mac, Date, Time):
@@ -117,10 +122,13 @@ def httpHandler(socket, address, Date, message):
             HTML_builder(Date) # Build the HTML page for the client
             file = open('data.html', 'r')
             entityBody = file.read().encode('utf-8')
+            file.close()
+            print("Sending html file")
         else:
             file = open(fileName, 'rb')
             entityBody = file.read()
-        file.close()
+            file.close()
+            print("sending image: " + fileName)
     except:
         statusline = "HTTP/1.1 404 Not Found" + CRLF
         contentTypeLine = "Content-type: text/html" + CRLF
@@ -172,7 +180,9 @@ def HTML_builder(Date):
             if len(imageFolders) > 0:
                 f.write("<h1>Images</h1>\n")
                 for x in imageFolders:
-                    newestImage = os.listdir(str(Date) + "/" + x)[-1]
+                    newestImage = os.listdir(str(Date) + "/" + x)
+                    newestImage.sort()
+                    newestImage = newestImage[-1]
                     f.write("<p>Camera: " + x[7:] + "</p>\n")
                     f.write("<p>Time Recorded: " + newestImage[0:5] + "</p>\n")
                     f.write("<img src=\"" + str(Date) + "/" + x + "/" + newestImage + "\">\n<br><br>\n")
@@ -224,11 +234,28 @@ def clientHandler(clientSocket, clientAddress):
     print(str(clientAddress[0]) + " has disconnected from port " + str(clientAddress[1]))
     clientSocket.close()   
 
+# constantly listens on port 25426 for requests for the servers IP address.
+# Clients can make use of this by sending a UDP broadcast via the IP 192.168.1.255
+# Message format:
+#         Incoming: "pi address?"
+#         Server responds: "pi: address:192.168.1.xxx
+def handoutAddress():
+    while(True):
+        print("listening for IP requests")
+        (message, clientAddress) = IPDistributor.recvfrom(100)
+        if (message.decode('utf-8') == "pi address?"):
+            print("Giving server IP address to " + str(clientAddress))
+            IP = check_output(['hostname', '-I']).decode('utf-8')[0:13]
+            message = "pi address:" + IP
+            IPDistributor.sendto(message.encode(), clientAddress)
 
 
 
 print("Server started, ctrl + c to shutdown")
 print("listening")
+
+handoutThread = threading.Thread(target=handoutAddress, daemon=True)
+handoutThread.start()
 
 # Main server loop, runs indefinitely unless interrupted
 while True:
