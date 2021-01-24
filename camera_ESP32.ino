@@ -24,7 +24,7 @@ char ssid[] = "";
 char pass[] = "";
 
 int status = WL_IDLE_STATUS;
-IPAddress server(192,168,1,155); // this needs to be adjusted every time the PI boots up currently
+IPAddress server(192,168,1,155);
 int port = 25425;
 
 WiFiClient client;
@@ -59,7 +59,7 @@ void findServer()
 
     String responseFront = response.substring(0, 11);
     Serial.println(responseFront);
-    if (responseFront == "pi address:") // response message will start with @ to ensure it is for me
+    if (responseFront == "pi address:")
     {
       response = response.substring(11);
       Serial.println(response);
